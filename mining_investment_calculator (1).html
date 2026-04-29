@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mining Investment Calculator — BioMilling LLC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 2rem; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #5f5e5a; margin-bottom: 1.5rem; }
+  .g4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .g2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .g3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .met { background: #f1efe8; border-radius: 8px; padding: 14px; text-align: center; }
+  .met .lbl { font-size: 11px; color: #5f5e5a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .met .val { font-size: 20px; font-weight: 500; color: #1a1a18; }
+  .met .sub { font-size: 11px; color: #888780; margin-top: 3px; }
+  .card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1rem 1.25rem; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid rgba(0,0,0,0.08); font-size: 13px; }
+  .row:last-child { border-bottom: none; }
+  .row .k { color: #5f5e5a; }
+  .row .v { font-weight: 500; }
+  .sl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sl-row label { font-size: 12px; color: #5f5e5a; min-width: 150px; }
+  .sl-row input[type=range] { flex: 1; }
+  .sl-row span { font-size: 12px; font-weight: 500; min-width: 72px; text-align: right; }
+  .hl { background: #eaf3de; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #27500a; margin-top: 10px; }
+  .warn { background: #faeeda; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #633806; margin-top: 8px; display: none; }
+  .secttitle { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: .05em; margin: 1.25rem 0 .6rem; }
+  h3 { font-size: 15px; font-weight: 500; margin: 0 0 .75rem; }
+  .tier-btn { padding: 6px 14px; font-size: 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; background: transparent; color: #5f5e5a; cursor: pointer; transition: all .15s; }
+  .tier-btn.active { background: #e6f1fb; color: #0c447c; border-color: #b5d4f4; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
+  .badge-amber { background: #faeeda; color: #633806; }
+  .badge-green { background: #eaf3de; color: #27500a; }
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 8px; font-size: 12px; color: #5f5e5a; flex-wrap: wrap; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+  @media (max-width: 600px) {
+    .g4 { grid-template-columns: repeat(2, 1fr); }
+    .g2 { grid-template-columns: 1fr; }
+    .g3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Mining Investment Calculator</h1>
+<p class="subtitle">Gold + Silver + Copper · Working Interest Analysis</p>
+
+<div class="g4" id="topmet">
+  <div class="met"><div class="lbl">Your investment</div><div class="val" id="m-inv">$125,000</div><div class="sub" id="m-wi">0.5% working interest</div></div>
+  <div class="met"><div class="lbl">Monthly income</div><div class="val" id="m-mo">—</div><div class="sub">at 85% distribution</div></div>
+  <div class="met"><div class="lbl">Annual income</div><div class="val" id="m-yr">—</div><div class="sub">projected</div></div>
+  <div class="met"><div class="lbl">Payback period</div><div class="val" id="m-pb">—</div><div class="sub">months to recoup</div></div>
+</div>
+
+<div class="secttitle">Production scenario</div>
+<div class="g3">
+  <div class="card" id="sc-cons" style="cursor:pointer;border:2px solid #b5d4f4" onclick="setScenario('cons')">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:500">Conservative</span>
+      <span class="badge badge-amber">Base case</span>
+    </div>
+    <div style="font-size:11px;color:#5f5e5a">50 oz/day · $4,000/oz · traditional milling</div>
+  </div>
+  <div class="card" id="sc-mod" style="cursor:pointer" onclick="setScenario('mod')">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:500">Moderate</span>
+      <span class="badge badge-green">BioMill online</span>
+    </div>
+    <div style="font-size:11px;color:#5f5e5a">100 oz/day · $4,500/oz · plasma + microbe</div>
+  </div>
+  <div class="card" id="sc-opt" style="cursor:pointer" onclick="setScenario('opt')">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:500">Optimistic</span>
+      <span class="badge badge-green">Full optimization</span>
+    </div>
+    <div style="font-size:11px;color:#5f5e5a">150 oz/day · $5,000/oz · max recovery</div>
+  </div>
+</div>
+
+<div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;align-items:center">
+  <span style="font-size:13px;color:#5f5e5a">Investment tier:</span>
+  <button class="tier-btn" onclick="setTier(0.2,50000,this)">0.2% WI — $50K</button>
+  <button class="tier-btn active" onclick="setTier(0.5,125000,this)">0.5% WI — $125K</button>
+  <button class="tier-btn" onclick="setTier(1,250000,this)">1.0% WI — $250K</button>
+</div>
+
+<div class="secttitle">Adjust assumptions</div>
+<div class="g2">
+<div class="card">
+  <h3>Production inputs</h3>
+  <div class="sl-row"><label>Gold price ($/oz)</label><input type="range" min="2000" max="6000" step="50" value="4000" id="s-gold" oninput="calc()"><span id="l-gold">$4,000</span></div>
+  <div class="sl-row"><label>Daily production (oz)</label><input type="range" min="30" max="200" step="5" value="50" id="s-oz" oninput="calc()"><span id="l-oz">50 oz</span></div>
+  <div class="sl-row"><label>Overhead ($/oz)</label><input type="range" min="400" max="1000" step="10" value="600" id="s-oh" oninput="calc()"><span id="l-oh">$600</span></div>
+  <div class="sl-row"><label>Distribution %</label><input type="range" min="70" max="95" step="1" value="85" id="s-dist" oninput="calc()"><span id="l-dist">85%</span></div>
+</div>
+<div class="card">
+  <h3>Your monthly returns</h3>
+  <div class="row"><span class="k">Gold price</span><span class="v" id="r-gp">$4,000/oz</span></div>
+  <div class="row"><span class="k">Daily production</span><span class="v" id="r-oz">50 oz/day</span></div>
+  <div class="row"><span class="k">Gross monthly revenue</span><span class="v" id="r-gross">—</span></div>
+  <div class="row"><span class="k">Overhead monthly</span><span class="v" id="r-ohm">—</span></div>
+  <div class="row"><span class="k">Net monthly profit</span><span class="v" id="r-net">—</span></div>
+  <div class="row"><span class="k">Investor pool (85%)</span><span class="v" id="r-pool">—</span></div>
+  <div class="row"><span class="k">Your WI share</span><span class="v" id="r-share">—</span></div>
+  <div class="hl" id="r-hl">—</div>
+  <div class="warn" id="r-warn">Warning: overhead exceeds gold revenue at this price — operation is unprofitable.</div>
+</div>
+</div>
+
+<div class="secttitle">12-month cumulative P&amp;L vs investment</div>
+<div class="chart-legend">
+  <span style="display:flex;align-items:center;gap:4px"><span class="legend-swatch" style="background:#22c55e"></span>In profit</span>
+  <span style="display:flex;align-items:center;gap:4px"><span class="legend-swatch" style="background:#ef4444"></span>Still recouping</span>
+</div>
+<div style="position:relative;width:100%;height:260px"><canvas id="chart" role="img" aria-label="12-month cumulative P&L chart showing monthly profit vs investment recoupment"></canvas></div>
+
+<div style="margin-top:1.5rem;font-size:11px;color:#888780;border-top:0.5px solid rgba(0,0,0,0.08);padding-top:1rem">
+  Data sources:  For due diligence purposes only — not financial advice.
+</div>
+
+<script>
+let wi = 0.005, invest = 125000, myChart;
+const scenarios = { cons:{oz:50,gold:4000,oh:600}, mod:{oz:100,gold:4500,oh:600}, opt:{oz:150,gold:5000,oh:600} };
+
+function setTier(pct, amt, btn) {
+  wi = pct/100; invest = amt;
+  document.getElementById('m-inv').textContent = '$'+amt.toLocaleString();
+  document.getElementById('m-wi').textContent = pct+'% working interest';
+  document.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  calc();
+}
+
+function setScenario(key) {
+  const s = scenarios[key];
+  document.getElementById('s-gold').value = s.gold;
+  document.getElementById('s-oz').value = s.oz;
+  document.getElementById('s-oh').value = s.oh;
+  document.querySelectorAll('[id^="sc-"]').forEach(el => el.style.border = '0.5px solid rgba(0,0,0,0.12)');
+  document.getElementById('sc-'+key).style.border = '2px solid #b5d4f4';
+  calc();
+}
+
+function fmt(n) { return '$'+Math.round(n).toLocaleString(); }
+function fmtM(n) { return n>=1e6 ? '$'+(n/1e6).toFixed(2)+'M' : '$'+Math.round(n/1000)+'K'; }
+
+function calc() {
+  const gold = parseFloat(document.getElementById('s-gold').value);
+  const oz   = parseFloat(document.getElementById('s-oz').value);
+  const oh   = parseFloat(document.getElementById('s-oh').value);
+  const dist = parseFloat(document.getElementById('s-dist').value)/100;
+
+  document.getElementById('l-gold').textContent = '$'+gold.toLocaleString();
+  document.getElementById('l-oz').textContent   = oz+' oz';
+  document.getElementById('l-oh').textContent   = '$'+oh;
+  document.getElementById('l-dist').textContent = Math.round(dist*100)+'%';
+
+  const grossDay   = gold * oz;
+  const ohDay      = oh * oz;
+  const netDay     = grossDay - ohDay;
+  const grossMonth = grossDay * 30;
+  const ohMonth    = ohDay * 30;
+  const netMonth   = netDay * 30;
+  const pool       = netMonth * dist;
+  const yourMonth  = pool * wi;
+  const yourAnnual = yourMonth * 12;
+  const payback    = yourMonth > 0 ? invest / yourMonth : 999;
+
+  document.getElementById('r-gp').textContent    = '$'+gold.toLocaleString()+'/oz';
+  document.getElementById('r-oz').textContent    = oz+' oz/day';
+  document.getElementById('r-gross').textContent = fmtM(grossMonth);
+  document.getElementById('r-ohm').textContent   = fmtM(ohMonth);
+  document.getElementById('r-net').textContent   = fmtM(netMonth);
+  document.getElementById('r-pool').textContent  = fmtM(pool);
+  document.getElementById('r-share').textContent = fmt(yourMonth)+'/mo';
+  document.getElementById('m-mo').textContent    = fmt(yourMonth);
+  document.getElementById('m-yr').textContent    = fmtM(yourAnnual);
+  document.getElementById('m-pb').textContent    = payback < 99 ? payback.toFixed(1)+' mo' : 'N/A';
+
+  const hl = document.getElementById('r-hl');
+  const wn = document.getElementById('r-warn');
+  if(netDay > 0){
+    hl.style.display = 'block'; wn.style.display = 'none';
+    hl.textContent = 'You earn '+fmt(yourMonth)+'/mo — recouping your '+fmt(invest)+' in ~'+payback.toFixed(1)+' months. Annual return: '+fmtM(yourAnnual)+'.';
+  } else {
+    hl.style.display = 'none'; wn.style.display = 'block';
+  }
+
+  const months  = ['Mo 1','Mo 2','Mo 3','Mo 4','Mo 5','Mo 6','Mo 7','Mo 8','Mo 9','Mo 10','Mo 11','Mo 12'];
+  const cumData = months.map((_,i) => Math.round((i+1)*yourMonth - invest));
+
+  if(myChart){
+    myChart.data.datasets[0].data = cumData;
+    myChart.data.datasets[0].backgroundColor = cumData.map(v => v>=0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)');
+    myChart.data.datasets[0].borderColor = cumData.map(v => v>=0 ? '#22c55e' : '#ef4444');
+    myChart.update();
+  } else {
+    myChart = new Chart(document.getElementById('chart'), {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Cumulative P&L vs invested',
+          data: cumData,
+          backgroundColor: cumData.map(v => v>=0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'),
+          borderColor: cumData.map(v => v>=0 ? '#22c55e' : '#ef4444'),
+          borderWidth: 2, borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => 'P&L: $'+ctx.parsed.y.toLocaleString() } } },
+        scales: {
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { callback: v => '$'+Math.round(v/1000)+'K', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+        }
+      }
+    });
+  }
+}
+calc();
+</script>
+</body>
+</html>
