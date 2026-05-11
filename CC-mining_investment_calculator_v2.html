@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mining Investment Calculator — CC Mine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f9f9f7;
+    color: #1a1a18;
+    padding: 2rem;
+  }
+
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #5f5e5a; margin-bottom: 8px; }
+
+  .visited-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; background: #eaf3de; color: #27500a;
+    border: 0.5px solid #c0dd97; border-radius: 6px;
+    padding: 3px 9px; margin-bottom: 1.5rem;
+  }
+
+  .g4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .g2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .g3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+
+  .met { background: #f1efe8; border-radius: 8px; padding: 14px; text-align: center; }
+  .met .lbl { font-size: 11px; color: #5f5e5a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .met .val { font-size: 20px; font-weight: 500; color: #1a1a18; }
+  .met .sub { font-size: 11px; color: #888780; margin-top: 3px; }
+
+  .card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1rem 1.25rem; }
+  .row  { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid rgba(0,0,0,0.08); font-size: 13px; }
+  .row:last-child { border-bottom: none; }
+  .row .k { color: #5f5e5a; }
+  .row .v { font-weight: 500; }
+
+  .sl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sl-row label { font-size: 12px; color: #5f5e5a; min-width: 150px; }
+  .sl-row input[type=range] { flex: 1; }
+  .sl-row span { font-size: 12px; font-weight: 500; min-width: 72px; text-align: right; }
+
+  .secttitle { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: .05em; margin: 1.25rem 0 .6rem; }
+  h3 { font-size: 15px; font-weight: 500; margin: 0 0 .75rem; }
+
+  .tier-btn { padding: 6px 14px; font-size: 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; background: transparent; color: #5f5e5a; cursor: pointer; transition: all .15s; }
+  .tier-btn.active { background: #e6f1fb; color: #0c447c; border-color: #b5d4f4; }
+
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
+  .badge-amber { background: #faeeda; color: #633806; }
+  .badge-green { background: #eaf3de; color: #27500a; }
+
+  .hl   { background: #eaf3de; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #27500a; margin-top: 10px; }
+  .warn { background: #faeeda; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #633806; margin-top: 8px; display: none; }
+
+  .scenario-card { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 12px; cursor: pointer; }
+  .scenario-card.sel { border: 2px solid #b5d4f4; }
+  .sc-label { font-size: 12px; font-weight: 500; }
+  .sc-desc  { font-size: 11px; color: #5f5e5a; margin-top: 4px; }
+
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 8px; font-size: 12px; color: #5f5e5a; flex-wrap: wrap; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 3px; vertical-align: middle; }
+
+  /* ── Checkbox rows ── */
+  .check-section { display: flex; flex-direction: column; gap: 6px; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: #f9f9f7;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    user-select: none;
+  }
+  .check-row:hover { background: #f1efe8; }
+
+  /* Phase checked state */
+  .check-row.checked {
+    background: #eaf3de;
+    border-color: #c0dd97;
+  }
+  /* Machine checked state */
+  .check-row.mach.checked {
+    background: #e6f1fb;
+    border-color: #b5d4f4;
+  }
+
+  .cb-box {
+    width: 17px; height: 17px; flex-shrink: 0;
+    border: 1.5px solid #bbb; border-radius: 4px;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .check-row.checked     .cb-box { background: #27500a; border-color: #27500a; }
+  .check-row.mach.checked .cb-box { background: #0c447c; border-color: #0c447c; }
+
+  .cb-tick { display: none; }
+  .check-row.checked .cb-tick { display: block; }
+
+  .check-info { flex: 1; min-width: 0; }
+  .check-name { font-size: 12px; font-weight: 500; color: #1a1a18; }
+  .check-sub  { font-size: 11px; color: #5f5e5a; margin-top: 1px; }
+
+  .phase-earn { font-size: 11px; color: #888780; font-weight: 500; min-width: 70px; text-align: right; flex-shrink: 0; }
+  .check-row.checked .phase-earn { color: #27500a; }
+
+  .cbadge { font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+  .cbadge-green { background: #eaf3de; color: #27500a; }
+  .cbadge-blue  { background: #e6f1fb; color: #0c447c; }
+  .cbadge-gray  { background: #f1efe8; color: #5f5e5a; }
+
+  /* ── Breakdown table ── */
+  .breakdown-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: 10px; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.1); }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #888780; padding: 8px 10px; background: #f1efe8; border-bottom: 0.5px solid rgba(0,0,0,0.1); text-align: left; }
+  th.r, td.r { text-align: right; }
+  td { padding: 7px 10px; border-bottom: 0.5px solid rgba(0,0,0,0.06); vertical-align: middle; color: #1a1a18; }
+  tr:last-child td { border-bottom: none; }
+  tr.row-done td { color: #aaa; }
+  tr.row-done td:first-child { text-decoration: line-through; }
+  tr.row-active { background: #f0f7ff; }
+  tr.row-active td { color: #0c447c; }
+  tfoot tr td { background: #1a1a18; color: #f1efe8; font-weight: 500; padding: 9px 10px; border: none; }
+
+  .spill { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .sp-done    { background: #eaf3de; color: #27500a; }
+  .sp-active  { background: #e6f1fb; color: #0c447c; }
+  .sp-pending { background: #f1efe8; color: #888780; }
+
+  @media (max-width: 640px) {
+    body { padding: 1rem; }
+    .g4 { grid-template-columns: repeat(2,1fr); }
+    .g2, .g3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>CC-Mine — Investment Calculator</h1>
+<p class="subtitle">Gilpin County, Colorado · Gold + Silver + Copper · Plasma Milling · Working Interest Analysis</p>
+<div class="visited-pill">
+  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+    <circle cx="6" cy="6" r="5" stroke="#27500a" stroke-width="1.5"/>
+    <path d="M3.5 6l2 2L8.5 4" stroke="#27500a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  Site visit confirmed · Gold veins observed · Copper staining verified · v2.0 Post-Visit
+</div>
+
+<!-- Top metrics -->
+<div class="g4" style="margin-bottom:1.5rem">
+  <div class="met"><div class="lbl">Your investment</div><div class="val" id="m-inv">$50,000</div><div class="sub" id="m-wi">0.2% working interest</div></div>
+  <div class="met"><div class="lbl">Active phase Au</div><div class="val" id="m-cur">0 oz/day</div><div class="sub" id="m-cur-ag">0 oz Ag/day</div></div>
+  <div class="met"><div class="lbl">Monthly distribution</div><div class="val" id="m-mo">—</div><div class="sub">at active phase</div></div>
+  <div class="met"><div class="lbl">Payback period</div><div class="val" id="m-pb">—</div><div class="sub">months from Jun 1</div></div>
+</div>
+
+<!-- Tier -->
+<div class="secttitle">Investment tier</div>
+<div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap">
+  <button class="tier-btn active" onclick="setTier(0.2,50000,this)">0.2% WI — $50K</button>
+  <button class="tier-btn"        onclick="setTier(0.5,125000,this)">0.5% WI — $125K</button>
+  <button class="tier-btn"        onclick="setTier(1.0,250000,this)">1.0% WI — $250K</button>
+</div>
+
+<!-- Scenarios -->
+<div class="secttitle">Production scenario</div>
+<div class="g3" style="margin-bottom:1.25rem">
+  <div class="scenario-card sel" id="sc-cons" onclick="setScenario('cons',this)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="sc-label">Conservative</span><span class="badge badge-amber">Base case</span>
+    </div>
+    <div class="sc-desc">50 oz/day Au · $3,300/oz · traditional milling</div>
+  </div>
+  <div class="scenario-card" id="sc-mod" onclick="setScenario('mod',this)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="sc-label">Moderate</span><span class="badge badge-green">3 machines</span>
+    </div>
+    <div class="sc-desc">48 oz/day Au · $3,300/oz · plasma steady state</div>
+  </div>
+  <div class="scenario-card" id="sc-opt" onclick="setScenario('opt',this)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="sc-label">Optimistic</span><span class="badge badge-green">Full capacity</span>
+    </div>
+    <div class="sc-desc">100 oz/day Au · $3,800/oz · supergene + plasma</div>
+  </div>
+</div>
+
+<!-- Assumptions + Returns -->
+<div class="secttitle">Adjust assumptions</div>
+<div class="g2" style="margin-bottom:1.25rem">
+  <div class="card">
+    <h3>Price &amp; production inputs</h3>
+    <div class="sl-row"><label>Gold price ($/oz)</label><input type="range" min="2500" max="5000" step="50" value="3300" id="s-gold" oninput="calc()"><span id="l-gold">$3,300</span></div>
+    <div class="sl-row"><label>Silver price ($/oz)</label><input type="range" min="20" max="90" step="1" value="33" id="s-silver" oninput="calc()"><span id="l-silver">$33</span></div>
+    <div class="sl-row"><label>Overhead ($/oz Au)</label><input type="range" min="300" max="900" step="25" value="600" id="s-oh" oninput="calc()"><span id="l-oh">$600</span></div>
+    <div class="sl-row"><label>Distribution %</label><input type="range" min="70" max="95" step="1" value="85" id="s-dist" oninput="calc()"><span id="l-dist">85%</span></div>
+  </div>
+  <div class="card">
+    <h3>Your returns at active phase</h3>
+    <div class="row"><span class="k">Gold price</span><span class="v" id="r-gp">$3,300/oz</span></div>
+    <div class="row"><span class="k">Silver price</span><span class="v" id="r-sp">$33/oz</span></div>
+    <div class="row"><span class="k">Daily gross revenue (mine)</span><span class="v" id="r-gross">—</span></div>
+    <div class="row"><span class="k">Daily overhead (mine)</span><span class="v" id="r-oh">—</span></div>
+    <div class="row"><span class="k">Net monthly profit (mine)</span><span class="v" id="r-net">—</span></div>
+    <div class="row"><span class="k">Investor pool (dist. %)</span><span class="v" id="r-pool">—</span></div>
+    <div class="row"><span class="k">Your WI share / month</span><span class="v" id="r-share">—</span></div>
+    <div class="hl"  id="r-hl">Check a production phase below to see your returns.</div>
+    <div class="warn" id="r-warn">Warning: overhead exceeds gold revenue — operation is unprofitable at this price.</div>
+  </div>
+</div>
+
+<!-- Plasma machines -->
+<div class="secttitle">Plasma machines online — check when confirmed running</div>
+<div class="check-section" style="margin-bottom:1.25rem">
+
+  <div class="check-row mach" id="mach-row-1" onclick="toggleMachine(1)">
+    <div class="cb-box">
+      <svg class="cb-tick" width="10" height="10" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="check-info">
+      <div class="check-name">Machine #1 online</div>
+      <div class="check-sub">Est. ~Jun 1 (operator timeline +1.5 wk slip) · enables first production shift</div>
+    </div>
+    <span class="phase-earn" id="mach-earn-1">—</span>
+    <span class="cbadge cbadge-blue">8 oz Au / 32 oz Ag per day</span>
+  </div>
+
+  <div class="check-row mach" id="mach-row-2" onclick="toggleMachine(2)">
+    <div class="cb-box">
+      <svg class="cb-tick" width="10" height="10" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="check-info">
+      <div class="check-name">Machine #2 online</div>
+      <div class="check-sub">Est. ~Jul 6 (operator timeline +1.5 wk slip) · doubles output to 32 oz Au/day</div>
+    </div>
+    <span class="phase-earn" id="mach-earn-2">—</span>
+    <span class="cbadge cbadge-blue">32 oz Au / 128 oz Ag per day</span>
+  </div>
+
+  <div class="check-row mach" id="mach-row-3" onclick="toggleMachine(3)">
+    <div class="cb-box">
+      <svg class="cb-tick" width="10" height="10" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="check-info">
+      <div class="check-name">Machine #3 online</div>
+      <div class="check-sub">Est. ~Jul 20 (operator timeline +1.5 wk slip) · steady state 48 oz Au/day</div>
+    </div>
+    <span class="phase-earn" id="mach-earn-3">—</span>
+    <span class="cbadge cbadge-blue">48 oz Au / 192 oz Ag per day</span>
+  </div>
+
+</div>
+
+<!-- Production phases -->
+<div class="secttitle">Production phase tracker — check each phase when targets are achieved</div>
+<div class="check-section" style="margin-bottom:1.25rem" id="phase-list"></div>
+
+<!-- Breakdown table -->
+<div class="secttitle">Phase-by-phase breakdown</div>
+<div class="breakdown-wrap" style="margin-bottom:1.25rem">
+  <table>
+    <thead>
+      <tr>
+        <th style="min-width:160px">Phase</th>
+        <th class="r">Days</th>
+        <th class="r">Au oz/day</th>
+        <th class="r">Ag oz/day</th>
+        <th class="r">Gross / period</th>
+        <th class="r">Your dist.</th>
+        <th class="r">Cumul. P&amp;L</th>
+        <th style="min-width:80px">Status</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">6-month total distribution</td>
+        <td class="r" id="tf-dist">—</td>
+        <td class="r" id="tf-net">—</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- Chart -->
+<div class="secttitle">12-month cumulative P&amp;L vs investment</div>
+<div class="chart-legend">
+  <span><span class="legend-swatch" style="background:#22c55e"></span>In profit (confirmed)</span>
+  <span><span class="legend-swatch" style="background:#ef4444"></span>Still recouping (confirmed)</span>
+  <span><span class="legend-swatch" style="background:rgba(34,197,94,0.2);border:1px dashed #22c55e"></span>Projected (not yet achieved)</span>
+</div>
+<div style="position:relative;width:100%;height:260px;margin-bottom:2rem">
+  <canvas id="chart" role="img" aria-label="12-month cumulative P&L chart"></canvas>
+</div>
+
+<div style="margin-top:.5rem;font-size:11px;color:#888780;border-top:0.5px solid rgba(0,0,0,0.08);padding-top:1rem">
+  Clay County Mine · Gilpin County, Colorado · BioMilling LLC (Plasma Milling) · Data: Culbert (1986), Dahrouge Geological Consulting (2025) · For due diligence purposes only — not financial advice.
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+var wi = 0.002;
+var invest = 50000;
+var machines = {1: false, 2: false, 3: false};
+var myChart = null;
+
+// Phase definitions with operator timeline adjusted +1.5 weeks
+var PHASES = [
+  {id:'install', name:'Install & Training',          date:'~May 25–31',     au:0,   ag:0,   days:7  },
+  {id:'p1',      name:'1 Shift · Machine #1',        date:'~Jun 1–14',      au:8,   ag:32,  days:14 },
+  {id:'p2',      name:'2 Shifts · Machine #1',       date:'~Jun 15–28',     au:16,  ag:64,  days:14 },
+  {id:'p3',      name:'2 Shifts · Machines 1 & 2',   date:'~Jul 6–19',      au:32,  ag:128, days:14 },
+  {id:'p4',      name:'2 Shifts · All 3 Machines',   date:'~Jul 20 – Aug 2',au:48,  ag:192, days:14 },
+  {id:'steady',  name:'Steady State — 3 Machines',   date:'Aug 3–31',       au:48,  ag:192, days:29 },
+  {id:'super',   name:'Supergene Zone Mining',        date:'Aug 3 – Sep 30', au:72,  ag:245, days:59 },
+  {id:'full',    name:'Full Capacity Target',         date:'September+',     au:100, ag:300, days:30 }
+];
+
+var phaseChecked = {};
+for (var pi = 0; pi < PHASES.length; pi++) {
+  phaseChecked[PHASES[pi].id] = false;
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function gel(id) { return document.getElementById(id); }
+
+function fmtD(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function fmtK(n) {
+  var a = Math.abs(n);
+  if (a >= 1000000) return '$' + (a / 1000000).toFixed(2) + 'M';
+  if (a >= 1000)    return '$' + Math.round(a / 1000) + 'K';
+  return '$' + Math.round(a);
+}
+
+function fmtSign(n) {
+  return (n >= 0 ? '+' : '-') + fmtK(n);
+}
+
+// ── Tier ──────────────────────────────────────────────────────────────────
+function setTier(pct, amt, btn) {
+  wi = pct / 100;
+  invest = amt;
+  gel('m-inv').textContent = '$' + amt.toLocaleString();
+  gel('m-wi').textContent  = pct + '% working interest';
+  var btns = document.querySelectorAll('.tier-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  btn.classList.add('active');
+  calc();
+}
+
+// ── Scenarios ──────────────────────────────────────────────────────────────
+function setScenario(key, card) {
+  var map = {
+    cons: {gold: 3300, silver: 33, oh: 600},
+    mod:  {gold: 3300, silver: 33, oh: 600},
+    opt:  {gold: 3800, silver: 35, oh: 600}
+  };
+  var s = map[key];
+  gel('s-gold').value   = s.gold;
+  gel('s-silver').value = s.silver;
+  gel('s-oh').value     = s.oh;
+  var cards = document.querySelectorAll('.scenario-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('sel');
+  card.classList.add('sel');
+  calc();
+}
+
+// ── Machine toggle ──────────────────────────────────────────────────────────
+function toggleMachine(n) {
+  machines[n] = !machines[n];
+  var row = gel('mach-row-' + n);
+  if (machines[n]) {
+    row.classList.add('checked');
+  } else {
+    row.classList.remove('checked');
+  }
+  calc();
+}
+
+// ── Phase toggle ──────────────────────────────────────────────────────────
+function togglePhase(id) {
+  phaseChecked[id] = !phaseChecked[id];
+  var row = gel('phase-row-' + id);
+  if (phaseChecked[id]) {
+    row.classList.add('checked');
+  } else {
+    row.classList.remove('checked');
+  }
+  calc();
+}
+
+// ── Build phase list ────────────────────────────────────────────────────────
+function buildPhaseList() {
+  var gold   = parseFloat(gel('s-gold').value);
+  var silver = parseFloat(gel('s-silver').value);
+  var oh     = parseFloat(gel('s-oh').value);
+  var dist   = parseFloat(gel('s-dist').value) / 100;
+
+  var list = gel('phase-list');
+  list.innerHTML = '';
+
+  for (var i = 0; i < PHASES.length; i++) {
+    var p = PHASES[i];
+    var dayRev  = (gold * p.au + silver * p.ag) - (oh * p.au);
+    var yourDay = dayRev > 0 ? dayRev * dist * wi : 0;
+    var earnTxt = p.au > 0 ? fmtD(yourDay * p.days) : '—';
+    var badgeTxt = p.au > 0 ? (fmtD(yourDay * 30) + '/mo') : 'Setup';
+    var badgeCls = p.au > 0 ? 'cbadge-green' : 'cbadge-gray';
+    var isChecked = phaseChecked[p.id];
+
+    var div = document.createElement('div');
+    div.className = 'check-row' + (isChecked ? ' checked' : '');
+    div.id = 'phase-row-' + p.id;
+
+    // Use data attribute + event listener to avoid inline string escaping issues
+    div.setAttribute('data-phase-id', p.id);
+    div.addEventListener('click', makePhaseHandler(p.id));
+
+    var subText = p.au > 0
+      ? (p.date + ' \u00B7 ' + p.au + ' oz Au / ' + p.ag + ' oz Ag per day \u00B7 ' + p.days + ' days')
+      : (p.date + ' \u00B7 Machine install & operator training');
+
+    div.innerHTML =
+      '<div class="cb-box">' +
+        '<svg class="cb-tick" width="10" height="10" viewBox="0 0 12 12" fill="none">' +
+          '<path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</svg>' +
+      '</div>' +
+      '<div class="check-info">' +
+        '<div class="check-name">' + p.name + '</div>' +
+        '<div class="check-sub">' + subText + '</div>' +
+      '</div>' +
+      '<span class="phase-earn">' + earnTxt + '</span>' +
+      '<span class="cbadge ' + badgeCls + '">' + badgeTxt + '</span>';
+
+    list.appendChild(div);
+  }
+}
+
+function makePhaseHandler(id) {
+  return function() { togglePhase(id); };
+}
+
+// ── Main calc ────────────────────────────────────────────────────────────────
+function calc() {
+  var gold   = parseFloat(gel('s-gold').value);
+  var silver = parseFloat(gel('s-silver').value);
+  var oh     = parseFloat(gel('s-oh').value);
+  var dist   = parseFloat(gel('s-dist').value) / 100;
+
+  gel('l-gold').textContent   = '$' + gold.toLocaleString();
+  gel('l-silver').textContent = '$' + silver;
+  gel('l-oh').textContent     = '$' + oh;
+  gel('l-dist').textContent   = Math.round(dist * 100) + '%';
+
+  // Rebuild phases (values update with sliders)
+  buildPhaseList();
+
+  // Update machine monthly earn labels
+  var machDefs = [
+    {au:0,  ag:0},
+    {au:8,  ag:32},
+    {au:32, ag:128},
+    {au:48, ag:192}
+  ];
+  for (var m = 1; m <= 3; m++) {
+    var md = machDefs[m];
+    var mRev = (gold * md.au + silver * md.ag) - oh * md.au;
+    var mMo  = mRev > 0 ? fmtD(mRev * dist * wi * 30) + '/mo' : '—';
+    gel('mach-earn-' + m).textContent = machines[m] ? mMo : '—';
+  }
+
+  // Find active phase (last checked)
+  var activeAu = 0, activeAg = 0, activeName = '';
+  for (var i = 0; i < PHASES.length; i++) {
+    if (phaseChecked[PHASES[i].id]) {
+      activeAu   = PHASES[i].au;
+      activeAg   = PHASES[i].ag;
+      activeName = PHASES[i].name;
+    }
+  }
+
+  // Returns card
+  var dayGross = (gold * activeAu) + (silver * activeAg);
+  var dayOh    = oh * activeAu;
+  var dayNet   = dayGross - dayOh;
+  var moNet    = dayNet * 30;
+  var moPool   = moNet > 0 ? moNet * dist : 0;
+  var moShare  = moPool * wi;
+  var hasActive = activeAu > 0;
+  var isProfit  = hasActive && dayNet > 0;
+
+  gel('r-gp').textContent    = '$' + gold.toLocaleString() + '/oz';
+  gel('r-sp').textContent    = '$' + silver + '/oz';
+  gel('r-gross').textContent = hasActive ? fmtD(dayGross) + '/day' : '—';
+  gel('r-oh').textContent    = hasActive ? fmtD(dayOh) + '/day' : '—';
+  gel('r-net').textContent   = hasActive ? fmtK(moNet) + '/mo' : '—';
+  gel('r-pool').textContent  = hasActive ? fmtK(moPool) + '/mo' : '—';
+  gel('r-share').textContent = hasActive ? fmtD(moShare) + '/mo' : '—';
+  gel('m-cur').textContent   = activeAu + ' oz Au/day';
+  gel('m-cur-ag').textContent = activeAg + ' oz Ag/day';
+  gel('m-mo').textContent    = hasActive ? fmtD(moShare) : '—';
+
+  var hlEl   = gel('r-hl');
+  var warnEl = gel('r-warn');
+  if (!hasActive) {
+    hlEl.style.display   = 'block';
+    warnEl.style.display = 'none';
+    hlEl.textContent = 'Check a production phase below to see your returns.';
+  } else if (isProfit) {
+    hlEl.style.display   = 'block';
+    warnEl.style.display = 'none';
+    hlEl.textContent = 'At ' + activeName + ': you earn ' + fmtD(moShare) + '/mo on your $' + invest.toLocaleString() + ' investment.';
+  } else {
+    hlEl.style.display   = 'none';
+    warnEl.style.display = 'block';
+  }
+
+  // ── Table ──────────────────────────────────────────────────────────────
+  var tbody = gel('table-body');
+  tbody.innerHTML = '';
+
+  var lastCheckedIdx = -1;
+  for (var i = 0; i < PHASES.length; i++) {
+    if (phaseChecked[PHASES[i].id]) lastCheckedIdx = i;
+  }
+
+  var cumul = 0, totalDist = 0, paybackDays = null, dayCount = 0;
+
+  for (var i = 0; i < PHASES.length; i++) {
+    var p = PHASES[i];
+    var dayRev     = (gold * p.au + silver * p.ag) - oh * p.au;
+    var yourDay    = dayRev > 0 ? dayRev * dist * wi : 0;
+    var periodDist = yourDay * p.days;
+    var grossPd    = (gold * p.au + silver * p.ag) * p.days;
+    var prevCumul  = cumul;
+    cumul      += periodDist;
+    totalDist  += periodDist;
+
+    var netVsInvest = cumul - invest;
+    if (netVsInvest >= 0 && paybackDays === null && yourDay > 0) {
+      paybackDays = dayCount + Math.ceil((invest - prevCumul) / yourDay);
+    }
+    dayCount += p.days;
+
+    var isDone   = phaseChecked[p.id];
+    var isActive = (i === lastCheckedIdx + 1);
+    var rowCls   = isDone ? 'row-done' : (isActive ? 'row-active' : '');
+
+    var pillHtml;
+    if (isDone)        pillHtml = '<span class="spill sp-done">&#10003; Done</span>';
+    else if (isActive) pillHtml = '<span class="spill sp-active">&#8594; Active</span>';
+    else               pillHtml = '<span class="spill sp-pending">Pending</span>';
+
+    var netColor = netVsInvest >= 0 ? '#166534' : '#991b1b';
+
+    var tr = document.createElement('tr');
+    tr.className = rowCls;
+    tr.innerHTML =
+      '<td>' + p.name + '</td>' +
+      '<td class="r">' + p.days + '</td>' +
+      '<td class="r">' + p.au + '</td>' +
+      '<td class="r">' + p.ag + '</td>' +
+      '<td class="r">' + (p.au > 0 ? fmtK(grossPd) : '—') + '</td>' +
+      '<td class="r">' + (p.au > 0 ? fmtD(periodDist) : '—') + '</td>' +
+      '<td class="r" style="color:' + netColor + ';font-weight:500">' + (p.au > 0 ? fmtSign(netVsInvest) : '—') + '</td>' +
+      '<td>' + pillHtml + '</td>';
+    tbody.appendChild(tr);
+  }
+
+  gel('tf-dist').textContent = fmtD(totalDist);
+  gel('tf-net').textContent  = fmtSign(totalDist - invest);
+  gel('m-pb').textContent    = paybackDays ? (paybackDays / 30).toFixed(1) + ' mo' : '>9 mo';
+
+  // ── Chart ──────────────────────────────────────────────────────────────
+  var monthLabels = ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'];
+  var monthlyAu   = [8,   32,  48,  80,  100, 100, 100, 100, 100, 100, 100, 100];
+  var monthlyAg   = [32,  128, 192, 248, 300, 300, 300, 300, 300, 300, 300, 300];
+
+  var checkedCount = 0;
+  for (var key in phaseChecked) {
+    if (phaseChecked[key]) checkedCount++;
+  }
+  var confirmedMonths = Math.min(Math.round(checkedCount * 1.4), 12);
+
+  var cumChartData = [];
+  var runCumul = -invest;
+  for (var mi = 0; mi < 12; mi++) {
+    var mDayRev = (gold * monthlyAu[mi] + silver * monthlyAg[mi]) - oh * monthlyAu[mi];
+    var mYourMo = mDayRev > 0 ? mDayRev * dist * wi * 30 : 0;
+    runCumul += mYourMo;
+    cumChartData.push(Math.round(runCumul));
+  }
+
+  var bgColors     = [];
+  var borderColors = [];
+  for (var mi = 0; mi < 12; mi++) {
+    var v = cumChartData[mi];
+    var confirmed = mi < confirmedMonths;
+    if (v >= 0) {
+      bgColors.push(confirmed ? 'rgba(34,197,94,0.75)' : 'rgba(34,197,94,0.18)');
+      borderColors.push(confirmed ? '#22c55e' : 'rgba(34,197,94,0.4)');
+    } else {
+      bgColors.push(confirmed ? 'rgba(239,68,68,0.75)' : 'rgba(239,68,68,0.18)');
+      borderColors.push(confirmed ? '#ef4444' : 'rgba(239,68,68,0.4)');
+    }
+  }
+
+  if (myChart) {
+    myChart.data.datasets[0].data            = cumChartData;
+    myChart.data.datasets[0].backgroundColor = bgColors;
+    myChart.data.datasets[0].borderColor     = borderColors;
+    myChart.update();
+  } else {
+    myChart = new Chart(gel('chart'), {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: [{
+          label: 'Cumulative P&L vs invested',
+          data: cumChartData,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: 2,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var v = ctx.parsed.y;
+                return 'P&L: ' + (v >= 0 ? '+' : '') + '$' + v.toLocaleString();
+              },
+              afterLabel: function(ctx) {
+                return ctx.parsed.y >= 0 ? '  In profit' : '  Still recouping';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { font: { size: 11 } },
+            grid: { display: false }
+          },
+          y: {
+            ticks: {
+              callback: function(v) {
+                return (v >= 0 ? '+' : '') + '$' + Math.round(Math.abs(v) / 1000) + 'K';
+              },
+              font: { size: 11 }
+            },
+            grid: { color: 'rgba(0,0,0,0.06)' }
+          }
+        }
+      }
+    });
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+calc();
+</script>
+</body>
+</html>
