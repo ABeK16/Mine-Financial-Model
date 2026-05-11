@@ -1,6 +1,9 @@
+
 CC Mine — Investment Calculator
 Overview
 An interactive web-based investment analysis tool for a mining operation in Gilpin County, Colorado. The calculator models working interest (WI) returns based on phased production ramp-up, plasma milling technology, and multi-machine deployment.
+
+https://abek16.github.io/Mine-Financial-Model/
 
 Features
 Investment Tiers
