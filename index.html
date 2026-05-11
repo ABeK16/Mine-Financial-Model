@@ -24,7 +24,11 @@
     border: 0.5px solid #c0dd97; border-radius: 6px;
     padding: 3px 9px; margin-bottom: 1.5rem;
   }
-
+p1 {
+  color: #1a1a18;
+  display: inline-block;    /* or 'block' */
+  min-width: fit-content;   /* prevents shifting */
+}
   .g4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
   .g2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
   .g3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
@@ -153,6 +157,9 @@
   </svg>
   Site visit confirmed · Gold veins observed · Copper staining verified · v2.0 Post-Visit
 </div>
+
+<p1 style="font-weight: bold;">Calculator Created by Abraham King</p1>
+
 
 <!-- Top metrics -->
 <div class="g4" style="margin-bottom:1.5rem">
